@@ -73,18 +73,18 @@ pipeline {
 
                     // Apply Backend Kubernetes manifests (if necessary, for initial deploy or manifest changes)
                     // CONFIRM THESE FILENAMES MATCH YOUR ACTUAL FILES IN k8s-files
-                    echo "Applying Backend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml" // Assuming this name
-                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml"
-                    echo "Applying Backend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml" // Assuming this name
-                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml"
+                    echo "Applying Backend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/deployment.yml" // Assuming this name
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/deployment.yml"
+                    echo "Applying Backend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/service.yml" // Assuming this name
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/service.yml"
 
 
                     // Apply Frontend Kubernetes manifests (if necessary, for initial deploy or manifest changes)
                     // CONFIRM THESE FILENAMES MATCH YOUR ACTUAL FILES IN k8s-files
-                    echo "Applying Frontend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml" // Assuming this name
-                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml"
-                    echo "Applying Frontend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml" // Assuming this name
-                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml"
+                    echo "Applying Frontend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/frontend-deploy.yml" // Assuming this name
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-deploy.yml"
+                    echo "Applying Frontend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/frontend-svc.yml" // Assuming this name
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-svc.yml"
 
 
                     // Update Backend deployment with the new image tag

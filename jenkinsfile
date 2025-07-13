@@ -24,7 +24,6 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                // When using "Pipeline script from SCM", Jenkins automatically clones your repository.
                 echo "Code checked out from GitHub repository 'k8s-nginx-app'."
             }
         }
@@ -74,33 +73,31 @@ pipeline {
 
                     // Apply Backend Kubernetes manifests (if necessary, for initial deploy or manifest changes)
                     // CONFIRM THESE FILENAMES MATCH YOUR ACTUAL FILES IN k8s-files
-                    echo "Applying Backend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml"
+                    echo "Applying Backend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml" // Assuming this name
                     sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml"
-                    echo "Applying Backend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml"
+                    echo "Applying Backend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml" // Assuming this name
                     sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml"
 
 
                     // Apply Frontend Kubernetes manifests (if necessary, for initial deploy or manifest changes)
                     // CONFIRM THESE FILENAMES MATCH YOUR ACTUAL FILES IN k8s-files
-                    echo "Applying Frontend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml"
+                    echo "Applying Frontend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml" // Assuming this name
                     sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml"
-                    echo "Applying Frontend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml"
+                    echo "Applying Frontend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml" // Assuming this name
                     sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml"
 
 
                     // Update Backend deployment with the new image tag
-                    // IMPORTANT:
-                    // 1. 'backend-deploy' MUST match the name of your Kubernetes Deployment for the backend.
-                    // 2. 'backend-container-name' MUST match the 'name' of the container within that backend Deployment's YAML.
-                    echo "Setting image for Backend deployment: backend-deploy"
-                    sh "kubectl set image deployment/backend-deploy backend-container-name=${BACKEND_IMAGE_FULL}"
+                    // 'backend-deploy' is the Deployment name (from your previous input)
+                    // 'app-backend' is the container name (from your latest input)
+                    echo "Setting image for Deployment 'backend-deploy', container 'app-backend' to ${BACKEND_IMAGE_FULL}"
+                    sh "kubectl set image deployment/backend-deploy app-backend=${BACKEND_IMAGE_FULL}"
 
                     // Update Frontend deployment with the new image tag
-                    // IMPORTANT:
-                    // 1. 'frontend-deploy' MUST match the name of your Kubernetes Deployment for the frontend.
-                    // 2. 'frontend-container-name' MUST match the 'name' of the container within that frontend Deployment's YAML.
-                    echo "Setting image for Frontend deployment: frontend-deploy"
-                    sh "kubectl set image deployment/frontend-deploy frontend-container-name=${FRONTEND_IMAGE_FULL}"
+                    // 'frontend-deploy' is the Deployment name (from your previous input)
+                    // 'app-frontend' is the container name (from your latest input)
+                    echo "Setting image for Deployment 'frontend-deploy', container 'app-frontend' to ${FRONTEND_IMAGE_FULL}"
+                    sh "kubectl set image deployment/frontend-deploy app-frontend=${FRONTEND_IMAGE_FULL}"
 
                     echo "Kubernetes deployments updated."
                 }
@@ -117,9 +114,9 @@ pipeline {
                     // Wait for rollouts to complete for each specific deployment
                     sh 'kubectl rollout status deployment/backend-deploy'
                     sh 'kubectl rollout status deployment/frontend-deploy'
-                    // Check services
-                    sh 'kubectl get svc backend-service' // Assuming your service name for backend is 'backend-service'
-                    sh 'kubectl get svc frontend-service' // Assuming your service name for frontend is 'frontend-service'
+                    // Check services by the confirmed service names
+                    sh 'kubectl get svc backend-service' // Checking with your provided service name
+                    sh 'kubectl get svc frontend-svc'    // Checking with your provided service name
                 }
             }
         }

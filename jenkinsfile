@@ -1,0 +1,139 @@
+// Jenkinsfile
+pipeline {
+    agent any // The pipeline will run on your Jenkins host machine
+
+    environment {
+        // Your Docker Hub username (use your actual Docker ID, e.g., mayurgaikwad638)
+        DOCKER_HUB_USERNAME = 'kubemayurr' // <-- CONFIRM THIS IS YOUR CORRECT DOCKER HUB USERNAME
+
+        // Define the base image names for Docker Hub.
+        // We will append the Jenkins BUILD_NUMBER for unique versions.
+        FRONTEND_IMAGE_BASE = "${DOCKER_HUB_USERNAME}/app-frontend" // Use your desired frontend repo name
+        BACKEND_IMAGE_BASE = "${DOCKER_HUB_USERNAME}/app-backend"   // Use your desired backend repo name
+
+        // Full image names with the dynamic tag for the current build
+        FRONTEND_IMAGE_FULL = "${FRONTEND_IMAGE_BASE}:${env.BUILD_NUMBER}"
+        BACKEND_IMAGE_FULL = "${BACKEND_IMAGE_BASE}:${env.BUILD_NUMBER}"
+
+        // Paths to your application code and Kubernetes manifests, relative to the repository root
+        FRONTEND_APP_PATH = "./frontend"
+        BACKEND_APP_PATH = "./backend"
+        KUBERNETES_MANIFESTS_PATH = "./k8s-files" // Path to your k8s manifest files
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                // When using "Pipeline script from SCM", Jenkins automatically clones your repository.
+                echo "Code checked out from GitHub repository 'k8s-nginx-app'."
+            }
+        }
+
+        stage('Build Frontend Docker Image') {
+            steps {
+                script {
+                    echo "Building Frontend Docker image: ${FRONTEND_IMAGE_FULL}"
+                    // Builds the image using the Dockerfile inside the 'frontend' directory.
+                    sh "docker build -t ${FRONTEND_IMAGE_FULL} ${FRONTEND_APP_PATH}"
+                }
+            }
+        }
+
+        stage('Build Backend Docker Image') {
+            steps {
+                script {
+                    echo "Building Backend Docker image: ${BACKEND_IMAGE_FULL}"
+                    // Builds the image using the Dockerfile inside the 'backend' directory.
+                    sh "docker build -t ${BACKEND_IMAGE_FULL} ${BACKEND_APP_PATH}"
+                }
+            }
+        }
+
+        stage('Push Docker Images to Docker Hub') {
+            steps {
+                // Uses the 'docker-hub-credentials' ID configured in Jenkins UI
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    script {
+                        echo "Logging into Docker Hub..."
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+
+                        echo "Pushing Frontend image: ${FRONTEND_IMAGE_FULL}"
+                        sh "docker push ${FRONTEND_IMAGE_FULL}"
+
+                        echo "Pushing Backend image: ${BACKEND_IMAGE_FULL}"
+                        sh "docker push ${BACKEND_IMAGE_FULL}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    echo "Deploying to Kubernetes using kubectl from ${KUBERNETES_MANIFESTS_PATH}..."
+
+                    // Apply Backend Kubernetes manifests (if necessary, for initial deploy or manifest changes)
+                    // CONFIRM THESE FILENAMES MATCH YOUR ACTUAL FILES IN k8s-files
+                    echo "Applying Backend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml"
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/backend-deployment.yml"
+                    echo "Applying Backend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml"
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/backend-service.yml"
+
+
+                    // Apply Frontend Kubernetes manifests (if necessary, for initial deploy or manifest changes)
+                    // CONFIRM THESE FILENAMES MATCH YOUR ACTUAL FILES IN k8s-files
+                    echo "Applying Frontend Kubernetes manifest: ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml"
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-deployment.yml"
+                    echo "Applying Frontend Kubernetes service: ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml"
+                    sh "kubectl apply -f ${KUBERNETES_MANIFESTS_PATH}/frontend-service.yml"
+
+
+                    // Update Backend deployment with the new image tag
+                    // IMPORTANT:
+                    // 1. 'backend-deploy' MUST match the name of your Kubernetes Deployment for the backend.
+                    // 2. 'backend-container-name' MUST match the 'name' of the container within that backend Deployment's YAML.
+                    echo "Setting image for Backend deployment: backend-deploy"
+                    sh "kubectl set image deployment/backend-deploy backend-container-name=${BACKEND_IMAGE_FULL}"
+
+                    // Update Frontend deployment with the new image tag
+                    // IMPORTANT:
+                    // 1. 'frontend-deploy' MUST match the name of your Kubernetes Deployment for the frontend.
+                    // 2. 'frontend-container-name' MUST match the 'name' of the container within that frontend Deployment's YAML.
+                    echo "Setting image for Frontend deployment: frontend-deploy"
+                    sh "kubectl set image deployment/frontend-deploy frontend-container-name=${FRONTEND_IMAGE_FULL}"
+
+                    echo "Kubernetes deployments updated."
+                }
+            }
+        }
+
+        stage('Verify Deployment (Optional)') {
+            steps {
+                script {
+                    echo "Verifying Kubernetes deployment status..."
+                    // Check specific deployments by name
+                    sh 'kubectl get deployment backend-deploy'
+                    sh 'kubectl get deployment frontend-deploy'
+                    // Wait for rollouts to complete for each specific deployment
+                    sh 'kubectl rollout status deployment/backend-deploy'
+                    sh 'kubectl rollout status deployment/frontend-deploy'
+                    // Check services
+                    sh 'kubectl get svc backend-service' // Assuming your service name for backend is 'backend-service'
+                    sh 'kubectl get svc frontend-service' // Assuming your service name for frontend is 'frontend-service'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs() // Cleans up the Jenkins workspace directory after each pipeline run
+        }
+        success {
+            echo 'Deployment Pipeline completed successfully! 🎉'
+        }
+        failure {
+            echo 'Deployment Pipeline failed! ❌ Check console output for errors.'
+        }
+    }
+}

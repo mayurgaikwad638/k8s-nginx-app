@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: backend-deploy
+
+spec:
+  replicas: 2
+  selector: 
+    matchLabels:
+      app: backend 
+  template:
+    metadata:
+      labels: 
+        app: backend
+
+    spec:
+      containers:
+      - name: app-backend
+        image: kubemayurr/app-backend:v2
+        ports:
+        - containerPort: 5000

@@ -51,7 +51,7 @@ pipeline {
         stage('Push Docker Images to Docker Hub') {
             steps {
                 // Uses the 'docker-hub-credentials' ID configured in Jenkins UI
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                     script {
                         echo "Logging into Docker Hub..."
                         sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
